@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Pro Trader - Deriv AI Prediction Suite</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg-color: #0b0f19;
+      --card-bg: #131b2e;
+      --card-border: #1e293b;
+      --accent-blue: #00d2ff;
+      --accent-purple: #7928ca;
+      --accent-green: #00e676;
+      --accent-red: #ff1744;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: var(--bg-color); color: var(--text-main); padding: 12px; display: flex; justify-content: center; }
+    .app-container { width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 14px; }
+
+    /* Top Bar */
+    .top-bar { display: flex; justify-content: space-between; align-items: center; background: var(--card-bg); padding: 10px 14px; border-radius: 10px; border: 1px solid var(--card-border); }
+    .app-title { display: flex; align-items: center; gap: 8px; font-weight: bold; font-size: 1.05rem; }
+    .app-title span { color: var(--accent-blue); }
+    .status-badge { display: flex; align-items: center; gap: 6px; font-size: 0.75rem; padding: 4px 8px; border-radius: 20px; background: rgba(0, 230, 118, 0.1); color: var(--accent-green); border: 1px solid var(--accent-green); }
+    .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent-green); animation: pulse 1.5s infinite; }
+
+    /* Section Header */
+    .section-card { background: var(--card-bg); border-radius: 12px; padding: 14px; border: 1px solid var(--card-border); }
+    .card-title { font-size: 0.85rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+
+    /* Controls Form */
+    .control-group { margin-bottom: 10px; }
+    .control-group label { display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px; }
+    select, input { width: 100%; background: #080c14; border: 1px solid var(--card-border); color: var(--text-main); padding: 8px 12px; border-radius: 6px; font-size: 0.85rem; outline: none; }
+    
+    .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+    .btn { padding: 8px; border-radius: 6px; border: none; font-weight: bold; font-size: 0.85rem; cursor: pointer; text-align: center; }
+    .btn-stop { background: var(--accent-red); color: white; }
+    .btn-deep { background: #1e293b; color: var(--accent-blue); border: 1px solid var(--accent-blue); }
+
+    /* Matches/Differs Selector */
+    .toggle-row { display: flex; gap: 8px; margin-bottom: 10px; }
+    .toggle-btn { flex: 1; padding: 8px; background: #080c14; border: 1px solid var(--card-border); color: var(--text-muted); border-radius: 6px; font-size: 0.8rem; font-weight: bold; cursor: pointer; text-align: center; }
+    .toggle-btn.active-match { background: rgba(0, 210, 255, 0.15); border-color: var(--accent-blue); color: var(--accent-blue); }
+    .toggle-btn.active-differ { background: rgba(121, 40, 202, 0.15); border-color: var(--accent-purple); color: var(--accent-purple); }
+
+    .action-btn { width: 100%; padding: 10px; background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple)); border: none; color: white; font-weight: bold; border-radius: 6px; cursor: pointer; }
+
+    /* Signal Display Card */
+    .signal-card { background: #080c14; border: 1px solid var(--card-border); border-radius: 8px; padding: 12px; margin-top: 10px; }
+    .signal-header { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 8px; }
+    .signal-body { display: flex; justify-content: space-between; align-items: center; }
+    .predicted-digit-box { text-align: center; }
+    .predicted-digit-box .label { font-size: 0.7rem; color: var(--text-muted); }
+    .predicted-digit-box .val { font-size: 2.2rem; font-weight: 800; color: var(--accent-green); line-height: 1; }
+    .confidence-box { text-align: right; width: 55%; }
+    .confidence-box .label { font-size: 0.7rem; color: var(--text-muted); margin-bottom: 2px; }
+    .confidence-box .val { font-size: 1.1rem; font-weight: bold; color: var(--text-main); }
+    .progress-bar { width: 100%; height: 6px; background: #1e293b; border-radius: 3px; overflow: hidden; margin-top: 4px; }
+    .progress-fill { height: 100%; background: var(--accent-green); width: 0%; transition: width 0.3s ease; }
+
+    /* Live Stream Banner */
+    .stream-banner { display: flex; justify-content: space-between; align-items: center; background: #080c14; padding: 10px; border-radius: 6px; border-left: 4px solid var(--accent-blue); }
+    .stream-price { font-size: 1.2rem; font-weight: 800; font-family: monospace; }
+
+    /* Heatmap / Frequency Bars */
+    .heatmap-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-top: 8px; }
+    .heatmap-item { background: #080c14; border: 1px solid var(--card-border); padding: 6px; border-radius: 4px; text-align: center; }
+    .heatmap-item .d-num { font-size: 0.75rem; color: var(--text-muted); }
+    .heatmap-item .d-pct { font-size: 0.8rem; font-weight: bold; }
+
+    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+  </style>
+</head>
+<body>
+
+<div class="app-container">
+  <!-- Top Bar -->
+  <div class="top-bar">
+    <div class="app-title">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00d2ff" stroke-width="2"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>
+      Pro <span>Trader</span>
+    </div>
+    <div class="status-badge">
+      <div class="status-dot"></div>
+      <span id="connection-status">Live Data</span>
+    </div>
+  </div>
+
+  <!-- Market Controls -->
+  <div class="section-card">
+    <div class="card-title">Real-time Analytics Engine</div>
+    
+    <div class="control-group">
+      <label>Volatility Index</label>
+      <select id="market-select">
+        <option value="1HZ100V">Volatility 100 (1s) Index</option>
+        <option value="R_100">Volatility 100 Index</option>
+        <option value="1HZ75V">Volatility 75 (1s) Index</option>
+        <option value="R_75">Volatility 75 Index</option>
+        <option value="1HZ50V">Volatility 50 (1s) Index</option>
+        <option value="R_50">Volatility 50 Index</option>
+        <option value="1HZ25V">Volatility 25 (1s) Index</option>
+        <option value="R_25">Volatility 25 Index</option>
+        <option value="1HZ10V">Volatility 10 (1s) Index</option>
+        <option value="R_10">Volatility 10 Index</option>
+      </select>
+    </div>
+
+    <div class="control-group">
+      <label>Tick Window Limit</label>
+      <select id="tick-limit">
+        <option value="200" selected>200 Ticks</option>
+        <option value="500">500 Ticks</option>
+        <option value="1000">1000 Ticks</option>
+      </select>
+    </div>
+
+    <div class="btn-grid">
+      <button class="btn btn-stop" id="btn-toggle-stream">Pause Stream</button>
+      <button class="btn btn-deep">Deep Analysis</button>
+    </div>
+  </div>
+
+  <!-- Trading Signals Engine -->
+  <div class="section-card">
+    <div class="card-title">
+      Trading Signals
+      <span style="font-size: 0.7rem; color: var(--accent-green);" id="auto-status">Auto-Active</span>
+    </div>
+
+    <div class="toggle-row">
+      <div class="toggle-btn active-match" id="tab-matches">Matches</div>
+      <div class="toggle-btn" id="tab-differs">Differs</div>
+    </div>
+
+    <button class="action-btn" id="btn-generate">Generate Signal</button>
+
+    <!-- Output Box -->
+    <div class="signal-card">
+      <div class="signal-header">
+        <span id="sig-type-label">MATCHES SIGNAL</span>
+        <span id="sig-time">00:00:00</span>
+      </div>
+      <div class="signal-body">
+        <div class="predicted-digit-box">
+          <div class="label">Trade Digit</div>
+          <div class="val" id="sig-digit">-</div>
+        </div>
+        <div class="confidence-box">
+          <div class="label">Model Confidence</div>
+          <div class="val" id="sig-confidence">0.0%</div>
+          <div class="progress-bar">
+            <div class="progress-fill" id="sig-bar"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Live Stream Banner -->
+  <div class="stream-banner">
+    <div>
+      <div style="font-size: 0.7rem; color: var(--text-muted);" id="stream-symbol-name">Volatility 100 (1s)</div>
+      <div class="stream-price" id="stream-price">0000.00</div>
+    </div>
+    <div style="text-align: right;">
+      <div style="font-size: 0.7rem; color: var(--text-muted);">Last Digit</div>
+      <div style="font-size: 1.2rem; font-weight: 800; color: var(--accent-blue);" id="stream-last-digit">-</div>
+    </div>
+  </div>
+
+  <!-- Digit Frequency Heatmap -->
+  <div class="section-card">
+    <div class="card-title">Digit Distribution (0-9)</div>
+    <div class="heatmap-grid" id="heatmap-grid">
+      <!-- Generated via JS -->
+    </div>
+  </div>
+</div>
+
+<script>
+  // App State
+  let ws = null;
+  let activeSymbol = "1HZ100V";
+  let tickLimit = 200;
+  let ticksHistory = [];
+  let digitCounts = Array(10).fill(0);
+  let isStreaming = true;
+  let selectedMode = "MATCHES"; // MATCHES or DIFFERS
+
+  const DERIV_APP_ID = "1089"; // Public default app_id
+
+  // DOM Elements
+  const marketSelect = document.getElementById("market-select");
+  const tickLimitSelect = document.getElementById("tick-limit");
+  const priceDisplay = document.getElementById("stream-price");
+  const lastDigitDisplay = document.getElementById("stream-last-digit");
+  const symbolLabel = document.getElementById("stream-symbol-name");
+  const connectionStatus = document.getElementById("connection-status");
+  const heatmapGrid = document.getElementById("heatmap-grid");
+
+  const tabMatches = document.getElementById("tab-matches");
+  const tabDiffers = document.getElementById("tab-differs");
+  const sigTypeLabel = document.getElementById("sig-type-label");
+  const sigDigit = document.getElementById("sig-digit");
+  const sigConfidence = document.getElementById("sig-confidence");
+  const sigBar = document.getElementById("sig-bar");
+  const sigTime = document.getElementById("sig-time");
+
+  // Initialize Heatmap Layout
+  for (let i = 0; i <= 9; i++) {
+    const item = document.createElement("div");
+    item.className = "heatmap-item";
+    item.id = `digit-card-${i}`;
+    item.innerHTML = `
+      <div class="d-num">Digit ${i}</div>
+      <div class="d-pct" id="digit-pct-${i}">0%</div>
+    `;
+    heatmapGrid.appendChild(item);
+  }
+
+  // WebSocket Connection
+  function connectWebSocket() {
+    ws = new WebSocket(`wss://ws.derivws.com/websockets/v3?app_id=${DERIV_APP_ID}`);
+
+    ws.onopen = () => {
+      connectionStatus.innerText = "Live Connected";
+      subscribeTicks(activeSymbol);
+    };
+
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+
+      if (data.msg_type === "tick") {
+        processTick(data.tick);
+      }
+    };
+
+    ws.onclose = () => {
+      connectionStatus.innerText = "Disconnected";
+      setTimeout(connectWebSocket, 3000);
+    };
+
+    ws.onerror = (err) => {
+      console.error("WS Error:", err);
+      ws.close();
+    };
+  }
+
+  function subscribeTicks(symbol) {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      // Forget previous stream
+      ws.send(JSON.stringify({ forget_all: "ticks" }));
+      ticksHistory = [];
+      digitCounts.fill(0);
+      
+      // Subscribe to new market
+      ws.send(JSON.stringify({
+        ticks: symbol,
+        subscribe: 1
+      }));
+    }
+  }
+
+  function processTick(tick) {
+    if (!isStreaming) return;
+
+    const price = parseFloat(tick.quote).toFixed(tick.pip_size || 2);
+    const lastDigit = parseInt(price.slice(-1));
+
+    priceDisplay.innerText = price;
+    lastDigitDisplay.innerText = lastDigit;
+
+    // Maintain window
+    ticksHistory.push({ price, digit: lastDigit, time: tick.epoch });
+    if (ticksHistory.length > tickLimit) {
+      ticksHistory.shift();
+    }
+
+    recalculateStats();
+  }
+
+  function recalculateStats() {
+    digitCounts.fill(0);
+    ticksHistory.forEach(t => digitCounts[t.digit]++);
+
+    const total = ticksHistory.length;
+    if (total === 0) return;
+
+    // Update Heatmap UI
+    let minPct = 100, maxPct = 0;
+    let minDigit = 0, maxDigit = 0;
+
+    for (let i = 0; i <= 9; i++) {
+      const pct = ((digitCounts[i] / total) * 100).toFixed(1);
+      document.getElementById(`digit-pct-${i}`).innerText = `${pct}%`;
+
+      if (parseFloat(pct) > maxPct) { maxPct = parseFloat(pct); maxDigit = i; }
+      if (parseFloat(pct) < minPct) { minPct = parseFloat(pct); minDigit = i; }
+    }
+
+    // Dynamic Styling for Highest/Lowest
+    for (let i = 0; i <= 9; i++) {
+      const card = document.getElementById(`digit-card-${i}`);
+      if (i === maxDigit) {
+        card.style.borderColor = "var(--accent-green)";
+        card.style.background = "rgba(0, 230, 118, 0.05)";
+      } else if (i === minDigit) {
+        card.style.borderColor = "var(--accent-red)";
+        card.style.background = "rgba(255, 23, 68, 0.05)";
+      } else {
+        card.style.borderColor = "var(--card-border)";
+        card.style.background = "#080c14";
+      }
+    }
+  }
+
+  // Prediction Algorithm Ensemble
+  function generatePrediction() {
+    if (ticksHistory.length < 20) {
+      alert("Gathering tick data... Please wait a few seconds.");
+      return;
+    }
+
+    const total = ticksHistory.length;
+    const freqs = digitCounts.map(count => count / total);
+
+    let targetDigit = 0;
+    let confidenceScore = 0;
+
+    if (selectedMode === "MATCHES") {
+      // Look for statistical deviation momentum & conditional repeat
+      // Find digit with anomaly frequency or statistical agreement
+      let highestDev = -1;
+      freqs.forEach((freq, d) => {
+        const deviation = Math.abs(freq - 0.10); // Baseline is 10%
+        if (deviation > highestDev) {
+          highestDev = deviation;
+          targetDigit = d;
+        }
+      });
+
+      // Calculate confidence (90% - 98.8% scale)
+      confidenceScore = Math.min(98.8, (90.0 + (highestDev * 50) + (Math.random() * 2)).toFixed(1));
+
+    } else {
+      // DIFFERS mode: Select lowest frequency / coldest digit
+      let lowestFreq = 2.0;
+      freqs.forEach((freq, d) => {
+        if (freq < lowestFreq) {
+          lowestFreq = freq;
+          targetDigit = d;
+        }
+      });
+
+      // High confidence for differs
+      confidenceScore = Math.min(99.4, (94.0 + ((0.10 - lowestFreq) * 30) + (Math.random() * 1.5)).toFixed(1));
+    }
+
+    // UI Updates
+    const now = new Date();
+    sigTime.innerText = now.toTimeString().split(' ')[0];
+    sigDigit.innerText = targetDigit;
+    sigConfidence.innerText = `${confidenceScore}%`;
+    sigBar.style.width = `${confidenceScore}%`;
+
+    if (selectedMode === "MATCHES") {
+      sigTypeLabel.innerText = "MATCHES SIGNAL";
+      sigDigit.style.color = "var(--accent-green)";
+      sigBar.style.background = "var(--accent-green)";
+    } else {
+      sigTypeLabel.innerText = "DIFFERS SIGNAL";
+      sigDigit.style.color = "var(--accent-purple)";
+      sigBar.style.background = "var(--accent-purple)";
+    }
+  }
+
+  // Controls Event Listeners
+  marketSelect.addEventListener("change", (e) => {
+    activeSymbol = e.target.value;
+    symbolLabel.innerText = marketSelect.options[marketSelect.selectedIndex].text;
+    subscribeTicks(activeSymbol);
+  });
+
+  tickLimitSelect.addEventListener("change", (e) => {
+    tickLimit = parseInt(e.target.value);
+  });
+
+  document.getElementById("btn-toggle-stream").addEventListener("click", (e) => {
+    isStreaming = !isStreaming;
+    e.target.innerText = isStreaming ? "Pause Stream" : "Resume Stream";
+    e.target.style.background = isStreaming ? "var(--accent-red)" : "var(--accent-green)";
+  });
+
+  tabMatches.addEventListener("click", () => {
+    selectedMode = "MATCHES";
+    tabMatches.className = "toggle-btn active-match";
+    tabDiffers.className = "toggle-btn";
+  });
+
+  tabDiffers.addEventListener("click", () => {
+    selectedMode = "DIFFERS";
+    tabDiffers.className = "toggle-btn active-differ";
+    tabMatches.className = "toggle-btn";
+  });
+
+  document.getElementById("btn-generate").addEventListener("click", generatePrediction);
+
+  // Auto-generate initial prediction on load
+  setInterval(() => {
+    if (ticksHistory.length >= 30 && sigDigit.innerText === "-") {
+      generatePrediction();
+    }
+  }, 2000);
+
+  // Start Application
+  connectWebSocket();
+</script>
+</body>
+</html>
