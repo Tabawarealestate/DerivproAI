@@ -15,7 +15,6 @@
 </head>
 <body class="min-h-screen pb-12">
 
-    <!-- NAVBAR -->
     <nav class="sticky top-0 z-50 glass-card border-b border-gray-800 px-4 py-3">
         <div class="max-w-7xl mx-auto flex justify-between items-center">
             <div class="flex items-center gap-2">
@@ -27,23 +26,16 @@
                 <span id="connectionBadge" class="flex items-center gap-1.5 text-xs font-bold text-yellow-400 bg-gray-900 border border-gray-800 px-2.5 py-1 rounded-full">
                     <span class="w-2 h-2 rounded-full bg-yellow-400 animate-pulse"></span> CONNECTING...
                 </span>
-                <select id="currencySelect" class="bg-gray-900 text-xs text-gray-300 font-bold border border-gray-800 rounded-lg px-2 py-1">
-                    <option value="USD">USD ($)</option>
-                    <option value="EUR">EUR (€)</option>
-                    <option value="GBP">GBP (£)</option>
-                    <option value="NGN">NGN (₦)</option>
-                </select>
             </div>
         </div>
     </nav>
 
-    <!-- HERO SECTION -->
     <header class="max-w-7xl mx-auto px-4 pt-6 pb-4">
         <div class="glass-card p-6 rounded-2xl border border-blue-500/20 bg-gradient-to-r from-blue-950/30 to-gray-900">
             <div class="flex flex-col md:flex-row justify-between md:items-center gap-4">
                 <div>
                     <h1 class="text-xl md:text-2xl font-extrabold text-white">Real-Time Deriv Market Intelligence</h1>
-                    <p class="text-xs md:text-sm text-gray-400 mt-1">Analyze live tick streams, statistical digit frequencies, and model probabilities in real time.</p>
+                    <p class="text-xs md:text-sm text-gray-400 mt-1">Live dynamic scanning for high-frequency MATCHES signals.</p>
                 </div>
                 <div class="flex items-center gap-2">
                     <select id="marketSelect" onchange="changeMarket()" class="bg-gray-900 text-emerald-400 border border-emerald-500/30 text-xs font-bold rounded-xl px-3 py-2">
@@ -68,10 +60,8 @@
         </div>
     </header>
 
-    <!-- DASHBOARD GRID -->
     <main class="max-w-7xl mx-auto px-4 space-y-6">
 
-        <!-- TOP METRICS ROW -->
         <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div class="glass-card p-4 rounded-xl border-gray-800">
                 <span class="text-[10px] font-bold text-gray-400 uppercase block">LIVE PRICE</span>
@@ -91,7 +81,6 @@
             </div>
         </div>
 
-        <!-- AI SIGNAL ENGINE CARD WITH DEDICATED MATCHES BUTTONS -->
         <div class="glass-card p-5 rounded-2xl border border-blue-500/30 space-y-4">
             <div class="flex justify-between items-center border-b border-gray-800 pb-3">
                 <div class="flex items-center gap-2">
@@ -101,87 +90,50 @@
                 <span id="signalStrength" class="text-xs font-extrabold px-3 py-1 rounded-full bg-gray-900 border border-gray-800 text-emerald-400">READY</span>
             </div>
 
-            <!-- DEDICATED MATCHES ACTION BUTTONS -->
             <div class="grid grid-cols-2 gap-3">
                 <button onclick="triggerDeepScan()" class="bg-gradient-to-r from-blue-700 to-indigo-600 hover:from-blue-600 hover:to-indigo-500 text-white font-black py-3 rounded-xl text-xs uppercase tracking-wider shadow-lg active:scale-95 transition flex items-center justify-center gap-2">
-                    🔍 DEEPSCAN MATCHES
+                    🔍 DEEPSCAN LIVE TICKS
                 </button>
                 <button onclick="triggerGenerateSignal()" class="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black py-3 rounded-xl text-xs uppercase tracking-wider shadow-lg active:scale-95 transition flex items-center justify-center gap-2">
-                    ⚡ GENERATE MATCHES SIGNAL
+                    ⚡ GENERATE NEW MATCH SIGNAL
                 </button>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center pt-2">
                 <div class="bg-gray-950 p-4 rounded-xl border border-gray-800">
-                    <span class="text-[10px] text-gray-400 font-bold uppercase block">CONTRACT PREDICTION</span>
+                    <span class="text-[10px] text-gray-400 font-bold uppercase block">ACTIVE PREDICTION</span>
                     <span id="predictedSignal" class="text-xl font-black text-emerald-400 mt-1 block">READY TO SCAN</span>
                 </div>
                 <div class="bg-gray-950 p-4 rounded-xl border border-gray-800">
-                    <span class="text-[10px] text-gray-400 font-bold uppercase block">MATCHES CONFIDENCE</span>
+                    <span class="text-[10px] text-gray-400 font-bold uppercase block">MATCH CONFIDENCE</span>
                     <span id="modelProb" class="text-xl font-black text-blue-400 mt-1 block">0%</span>
                 </div>
                 <div class="bg-gray-950 p-4 rounded-xl border border-gray-800">
-                    <span class="text-[10px] text-gray-400 font-bold uppercase block">SIGNAL TYPE</span>
+                    <span class="text-[10px] text-gray-400 font-bold uppercase block">TARGET CONTRACT</span>
                     <span id="signalType" class="text-xl font-black text-amber-400 mt-1 block">MATCHES</span>
                 </div>
             </div>
         </div>
 
-        <!-- CHART & DIGIT DISTRIBUTION ROW -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div class="lg:col-span-2 glass-card p-4 rounded-2xl space-y-3">
-                <span class="text-xs font-bold text-gray-300 uppercase block">Live Tick Movement (15m)</span>
+                <span class="text-xs font-bold text-gray-300 uppercase block">Live Tick Movement</span>
                 <div class="h-64 w-full">
                     <canvas id="tickChart"></canvas>
                 </div>
             </div>
 
-            <!-- DIGIT FREQUENCY (0-9) -->
             <div class="glass-card p-4 rounded-2xl space-y-3">
                 <div class="flex justify-between items-center">
-                    <span class="text-xs font-bold text-gray-300 uppercase">Digit Distribution</span>
+                    <span class="text-xs font-bold text-gray-300 uppercase">Digit Frequencies</span>
                     <span id="hotColdBadge" class="text-[10px] text-gray-400">Hot: - | Cold: -</span>
                 </div>
                 <div id="digitGrid" class="grid grid-cols-5 gap-2"></div>
             </div>
         </div>
 
-        <!-- STATISTICAL PROBABILITY MATRIX -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div class="glass-card p-4 rounded-xl space-y-3">
-                <span class="text-xs font-bold text-gray-300 uppercase block">Over / Under 5 Analysis</span>
-                <div class="space-y-2">
-                    <div class="flex justify-between text-xs font-bold"><span class="text-emerald-400">OVER 5</span><span id="over5Val">0%</span></div>
-                    <div class="w-full bg-gray-900 rounded-full h-2 overflow-hidden"><div id="over5Bar" class="bg-emerald-500 h-2 rounded-full" style="width: 0%"></div></div>
-                    <div class="flex justify-between text-xs font-bold pt-1"><span class="text-red-400">UNDER 5</span><span id="under5Val">0%</span></div>
-                    <div class="w-full bg-gray-900 rounded-full h-2 overflow-hidden"><div id="under5Bar" class="bg-red-500 h-2 rounded-full" style="width: 0%"></div></div>
-                </div>
-            </div>
-
-            <div class="glass-card p-4 rounded-xl space-y-3">
-                <span class="text-xs font-bold text-gray-300 uppercase block">Even / Odd Probability</span>
-                <div class="space-y-2">
-                    <div class="flex justify-between text-xs font-bold"><span class="text-blue-400">EVEN DIGITS</span><span id="evenVal">0%</span></div>
-                    <div class="w-full bg-gray-900 rounded-full h-2 overflow-hidden"><div id="evenBar" class="bg-blue-500 h-2 rounded-full" style="width: 0%"></div></div>
-                    <div class="flex justify-between text-xs font-bold pt-1"><span class="text-purple-400">ODD DIGITS</span><span id="oddVal">0%</span></div>
-                    <div class="w-full bg-gray-900 rounded-full h-2 overflow-hidden"><div id="oddBar" class="bg-purple-500 h-2 rounded-full" style="width: 0%"></div></div>
-                </div>
-            </div>
-
-            <div class="glass-card p-4 rounded-xl space-y-3">
-                <span class="text-xs font-bold text-gray-300 uppercase block">Rise / Fall Momentum (10 Ticks)</span>
-                <div class="space-y-2">
-                    <div class="flex justify-between text-xs font-bold"><span class="text-emerald-400">RISE (MOMENTUM)</span><span id="riseVal">0%</span></div>
-                    <div class="w-full bg-gray-900 rounded-full h-2 overflow-hidden"><div id="riseBar" class="bg-emerald-500 h-2 rounded-full" style="width: 0%"></div></div>
-                    <div class="flex justify-between text-xs font-bold pt-1"><span class="text-red-400">FALL (MOMENTUM)</span><span id="fallVal">0%</span></div>
-                    <div class="w-full bg-gray-900 rounded-full h-2 overflow-hidden"><div id="fallBar" class="bg-red-500 h-2 rounded-full" style="width: 0%"></div></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- SIGNAL STREAM FEED -->
         <div class="glass-card p-4 rounded-2xl space-y-3">
-            <span class="text-xs font-bold text-gray-300 uppercase block">Live Matches Signal Stream</span>
+            <span class="text-xs font-bold text-gray-300 uppercase block">Real-Time Generated Signals</span>
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-xs font-mono">
                     <thead class="bg-gray-900/80 text-gray-400 uppercase text-[10px]">
@@ -189,8 +141,8 @@
                             <th class="p-2.5">Time</th>
                             <th class="p-2.5">Market</th>
                             <th class="p-2.5">Contract</th>
-                            <th class="p-2.5">Prediction</th>
-                            <th class="p-2.5">Matches Confidence</th>
+                            <th class="p-2.5">Matches Target</th>
+                            <th class="p-2.5">Confidence</th>
                             <th class="p-2.5">Status</th>
                         </tr>
                     </thead>
@@ -200,10 +152,6 @@
         </div>
 
     </main>
-
-    <footer class="max-w-7xl mx-auto px-4 mt-8 text-center text-[11px] text-gray-500 space-y-1">
-        <p>Deriv AI provides statistical market analysis and probability-based metrics for informational purposes only. Predictions are not guaranteed.</p>
-    </footer>
 
     <script>
         let ws;
@@ -223,27 +171,8 @@
         const ctx = document.getElementById('tickChart').getContext('2d');
         chart = new Chart(ctx, {
             type: 'line',
-            data: {
-                labels: [],
-                datasets: [{
-                    label: 'Tick Price',
-                    data: [],
-                    borderColor: '#3b82f6',
-                    borderWidth: 2,
-                    tension: 0.2,
-                    pointRadius: 3,
-                    pointBackgroundColor: '#60a5fa'
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    x: { display: false },
-                    y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9ca3af', font: { size: 10 } } }
-                }
-            }
+            data: { labels: [], datasets: [{ label: 'Tick Price', data: [], borderColor: '#3b82f6', borderWidth: 2, tension: 0.2, pointRadius: 3, pointBackgroundColor: '#60a5fa' }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9ca3af', font: { size: 10 } } } } }
         });
 
         function connectWebSocket() {
@@ -251,10 +180,7 @@
             ws = new WebSocket(`${protocol}//${window.location.host}`);
 
             ws.onopen = () => {
-                document.getElementById('connectionBadge').innerHTML = `
-                    <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
-                    <span class="text-emerald-400">● LIVE</span>
-                `;
+                document.getElementById('connectionBadge').innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400"></span><span class="text-emerald-400">● LIVE</span>`;
             };
 
             ws.onmessage = (event) => {
@@ -266,76 +192,85 @@
             };
 
             ws.onclose = () => {
-                document.getElementById('connectionBadge').innerHTML = `
-                    <span class="w-2 h-2 rounded-full bg-red-500"></span>
-                    <span class="text-red-400">● OFFLINE</span>
-                `;
+                document.getElementById('connectionBadge').innerHTML = `<span class="w-2 h-2 rounded-full bg-red-500"></span><span class="text-red-400">● OFFLINE</span>`;
                 setTimeout(connectWebSocket, 2000);
             };
         }
 
         function triggerDeepScan() {
-            document.getElementById('predictedSignal').innerText = 'SCANNING DIGITS...';
-            document.getElementById('signalStrength').innerText = 'SCANNING';
+            if (!latestData) return;
+            document.getElementById('predictedSignal').innerText = 'SCANNING MARKET...';
+            document.getElementById('signalStrength').innerText = 'DEEP SCANNING';
             document.getElementById('signalStrength').className = 'text-xs font-extrabold px-3 py-1 rounded-full bg-blue-900/60 border border-blue-500/50 text-blue-300 animate-pulse';
 
             setTimeout(() => {
-                if (latestData) updateDashboard(latestData, true);
-            }, 600);
+                const s = latestData.stats;
+                // Calculate dynamic matches prediction based on highest live percentage
+                let maxDigit = 0;
+                let maxVal = -1;
+                s.digitPercentages.forEach((val, d) => {
+                    if (val > maxVal) { maxVal = val; maxDigit = d; }
+                });
+
+                document.getElementById('predictedSignal').innerText = `MATCHES ${maxDigit}`;
+                document.getElementById('modelProb').innerText = `${maxVal}%`;
+                document.getElementById('signalType').innerText = 'MATCHES';
+                document.getElementById('signalStrength').innerText = 'SCAN COMPLETE';
+                document.getElementById('signalStrength').className = 'text-xs font-extrabold px-3 py-1 rounded-full bg-emerald-900 border border-emerald-500 text-emerald-400';
+            }, 500);
         }
 
         function triggerGenerateSignal() {
             if (!latestData) return;
             const s = latestData.stats;
 
-            document.getElementById('predictedSignal').innerText = 'EVALUATING MATCH...';
-            document.getElementById('signalStrength').innerText = 'EVALUATING';
-            document.getElementById('signalStrength').className = 'text-xs font-extrabold px-3 py-1 rounded-full bg-emerald-900/60 border border-emerald-500/50 text-emerald-300 animate-pulse';
+            // Dynamically search live tick stream to extract real-time dynamic target
+            const counts = new Array(10).fill(0);
+            const recentDigits = s.recentPrices ? s.recentPrices.map(p => parseInt(p.toString().slice(-1))) : [];
+            recentDigits.forEach(d => { if (!isNaN(d)) counts[d]++; });
 
-            setTimeout(() => {
-                const hotDigit = s.hotDigit;
-                const hotFreq = s.digitPercentages[hotDigit];
-                const matchesPrediction = `MATCHES ${hotDigit}`;
+            let activeTargetDigit = s.hotDigit;
+            let targetFrequency = s.digitPercentages[activeTargetDigit];
 
-                document.getElementById('predictedSignal').innerText = matchesPrediction;
-                document.getElementById('modelProb').innerText = `${s.confidence}%`;
-                document.getElementById('signalType').innerText = 'MATCHES';
-                document.getElementById('signalStrength').innerText = 'HIGH CONFLUENCE';
-                document.getElementById('signalStrength').className = 'text-xs font-extrabold px-3 py-1 rounded-full bg-emerald-900 border border-emerald-500 text-emerald-400';
+            // Target calculation
+            counts.forEach((cnt, d) => {
+                const perc = Math.round((cnt / (recentDigits.length || 1)) * 100);
+                if (perc >= targetFrequency) {
+                    targetFrequency = perc;
+                    activeTargetDigit = d;
+                }
+            });
 
-                // Append to history table
-                const table = document.getElementById('signalTable');
-                const time = new Date().toLocaleTimeString();
-                const row = `
-                    <tr class="hover:bg-gray-900/50 transition bg-emerald-950/20">
-                        <td class="p-2.5 text-gray-400">${time}</td>
-                        <td class="p-2.5 font-bold text-white">${latestData.marketName}</td>
-                        <td class="p-2.5 text-amber-400 font-bold">MATCHES</td>
-                        <td class="p-2.5 font-bold text-emerald-400">${matchesPrediction}</td>
-                        <td class="p-2.5 text-blue-400">${s.confidence}% (${hotFreq}%)</td>
-                        <td class="p-2.5"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px]">● MATCHES READY</span></td>
-                    </tr>
-                `;
-                table.innerHTML = row + table.innerHTML;
-            }, 800);
+            const time = new Date().toLocaleTimeString();
+            const matchesPrediction = `MATCHES ${activeTargetDigit}`;
+
+            document.getElementById('predictedSignal').innerText = matchesPrediction;
+            document.getElementById('modelProb').innerText = `${targetFrequency}%`;
+            document.getElementById('signalType').innerText = 'MATCHES';
+            document.getElementById('signalStrength').innerText = 'NEW SIGNAL GENERATED';
+            document.getElementById('signalStrength').className = 'text-xs font-extrabold px-3 py-1 rounded-full bg-emerald-900 border border-emerald-500 text-emerald-400';
+
+            // Push fresh signal row to the live signal stream table
+            const table = document.getElementById('signalTable');
+            const row = `
+                <tr class="hover:bg-gray-900/50 transition bg-emerald-950/20">
+                    <td class="p-2.5 text-gray-400">${time}</td>
+                    <td class="p-2.5 font-bold text-white">${latestData.marketName}</td>
+                    <td class="p-2.5 text-amber-400 font-bold">MATCHES</td>
+                    <td class="p-2.5 font-bold text-emerald-400">${matchesPrediction}</td>
+                    <td class="p-2.5 text-blue-400">${targetFrequency}%</td>
+                    <td class="p-2.5"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px]">● LIVE MATCH</span></td>
+                </tr>
+            `;
+            table.innerHTML = row + table.innerHTML;
         }
 
-        function updateDashboard(data, forceScan = false) {
+        function updateDashboard(data) {
             const s = data.stats;
-
             document.getElementById('livePrice').innerText = data.price;
             document.getElementById('lastDigit').innerText = data.lastDigit;
             document.getElementById('sampleSize').innerText = `${s.sampleSize} Ticks`;
             document.getElementById('confidenceText').innerText = `${s.confidence}%`;
-
-            // Always assign MATCHES prediction directly based on the highest frequency (Hot Digit)
-            const matchesPrediction = `MATCHES ${s.hotDigit}`;
-            if (forceScan || document.getElementById('predictedSignal').innerText.includes('READY') || document.getElementById('predictedSignal').innerText.includes('WAITING') || document.getElementById('predictedSignal').innerText.includes('SCANNING')) {
-                document.getElementById('predictedSignal').innerText = matchesPrediction;
-                document.getElementById('modelProb').innerText = `${s.confidence}%`;
-                document.getElementById('signalType').innerText = 'MATCHES';
-                document.getElementById('signalStrength').innerText = 'HIGH CONFLUENCE';
-            }
 
             s.digitPercentages.forEach((perc, digit) => {
                 const card = document.getElementById(`digit-card-${digit}`);
@@ -347,21 +282,6 @@
             });
 
             document.getElementById('hotColdBadge').innerText = `Hot: ${s.hotDigit} | Cold: ${s.coldDigit}`;
-
-            document.getElementById('over5Val').innerText = `${s.over5Prob}%`;
-            document.getElementById('over5Bar').style.width = `${s.over5Prob}%`;
-            document.getElementById('under5Val').innerText = `${s.under5Prob}%`;
-            document.getElementById('under5Bar').style.width = `${s.under5Prob}%`;
-
-            document.getElementById('evenVal').innerText = `${s.evenProb}%`;
-            document.getElementById('evenBar').style.width = `${s.evenProb}%`;
-            document.getElementById('oddVal').innerText = `${s.oddProb}%`;
-            document.getElementById('oddBar').style.width = `${s.oddProb}%`;
-
-            document.getElementById('riseVal').innerText = `${s.riseProb}%`;
-            document.getElementById('riseBar').style.width = `${s.riseProb}%`;
-            document.getElementById('fallVal').innerText = `${s.fallProb}%`;
-            document.getElementById('fallBar').style.width = `${s.fallProb}%`;
 
             if (s.recentPrices) {
                 chart.data.labels = s.recentPrices.map((_, i) => i);
