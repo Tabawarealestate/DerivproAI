@@ -91,20 +91,30 @@
             </div>
         </div>
 
-        <!-- AI SIGNAL ENGINE CARD -->
+        <!-- AI SIGNAL ENGINE CARD WITH ACTION BUTTONS -->
         <div class="glass-card p-5 rounded-2xl border border-blue-500/30 space-y-4">
             <div class="flex justify-between items-center border-b border-gray-800 pb-3">
                 <div class="flex items-center gap-2">
                     <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
                     <h2 class="text-xs font-bold text-gray-300 uppercase tracking-wider">LIVE AI SIGNAL GENERATOR</h2>
                 </div>
-                <span id="signalStrength" class="text-xs font-extrabold px-3 py-1 rounded-full bg-gray-900 border border-gray-800 text-yellow-400">ANALYZING</span>
+                <span id="signalStrength" class="text-xs font-extrabold px-3 py-1 rounded-full bg-gray-900 border border-gray-800 text-yellow-400">READY</span>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+            <!-- ACTION BUTTONS: DEEPSCAN & GENERATE SIGNAL -->
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="triggerDeepScan()" class="bg-gradient-to-r from-blue-700 to-indigo-600 hover:from-blue-600 hover:to-indigo-500 text-white font-black py-3 rounded-xl text-xs uppercase tracking-wider shadow-lg active:scale-95 transition flex items-center justify-center gap-2">
+                    🔍 DEEPSCAN TICKS
+                </button>
+                <button onclick="triggerGenerateSignal()" class="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black py-3 rounded-xl text-xs uppercase tracking-wider shadow-lg active:scale-95 transition flex items-center justify-center gap-2">
+                    ⚡ GENERATE SIGNAL
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center pt-2">
                 <div class="bg-gray-950 p-4 rounded-xl border border-gray-800">
                     <span class="text-[10px] text-gray-400 font-bold uppercase block">CONTRACT PREDICTION</span>
-                    <span id="predictedSignal" class="text-xl font-black text-emerald-400 mt-1 block">WAITING...</span>
+                    <span id="predictedSignal" class="text-xl font-black text-emerald-400 mt-1 block">READY TO SCAN</span>
                 </div>
                 <div class="bg-gray-950 p-4 rounded-xl border border-gray-800">
                     <span class="text-[10px] text-gray-400 font-bold uppercase block">MODEL PROBABILITY</span>
@@ -244,7 +254,7 @@
     <script>
         let ws;
         let chart;
-        const maxChartPoints = 20;
+        let latestData = null;
 
         // Initialize Digit Grid
         const digitGrid = document.getElementById('digitGrid');
@@ -298,6 +308,7 @@
             ws.onmessage = (event) => {
                 const msg = JSON.parse(event.data);
                 if (msg.type === 'MARKET_UPDATE') {
+                    latestData = msg;
                     updateDashboard(msg);
                 }
             };
@@ -311,6 +322,58 @@
             };
         }
 
+        function triggerDeepScan() {
+            document.getElementById('predictedSignal').innerText = 'SCANNING TICKS...';
+            document.getElementById('signalStrength').innerText = 'SCANNING';
+            document.getElementById('signalStrength').className = 'text-xs font-extrabold px-3 py-1 rounded-full bg-blue-900/60 border border-blue-500/50 text-blue-300 animate-pulse';
+
+            setTimeout(() => {
+                if (latestData) updateDashboard(latestData);
+            }, 800);
+        }
+
+        function triggerGenerateSignal() {
+            document.getElementById('predictedSignal').innerText = 'EVALUATING MODEL...';
+            document.getElementById('signalStrength').innerText = 'EVALUATING';
+            document.getElementById('signalStrength').className = 'text-xs font-extrabold px-3 py-1 rounded-full bg-emerald-900/60 border border-emerald-500/50 text-emerald-300 animate-pulse';
+
+            setTimeout(() => {
+                if (!latestData) return;
+                const s = latestData.stats;
+                
+                // Force best probabilistic signal match from current buffer
+                let bestPrediction = `MATCHES ${s.hotDigit}`;
+                let bestType = 'MATCHES';
+                let bestProb = s.confidence;
+
+                if (parseFloat(s.over5Prob) > 55) { bestPrediction = 'OVER 5'; bestType = 'OVER / UNDER'; bestProb = s.over5Prob; }
+                else if (parseFloat(s.under5Prob) > 55) { bestPrediction = 'UNDER 5'; bestType = 'OVER / UNDER'; bestProb = s.under5Prob; }
+                else if (parseFloat(s.evenProb) > 55) { bestPrediction = 'EVEN'; bestType = 'EVEN / ODD'; bestProb = s.evenProb; }
+                else if (parseFloat(s.oddProb) > 55) { bestPrediction = 'ODD'; bestType = 'EVEN / ODD'; bestProb = s.oddProb; }
+
+                document.getElementById('predictedSignal').innerText = bestPrediction;
+                document.getElementById('modelProb').innerText = `${bestProb}%`;
+                document.getElementById('signalType').innerText = bestType;
+                document.getElementById('signalStrength').innerText = 'GENERATED';
+                document.getElementById('signalStrength').className = 'text-xs font-extrabold px-3 py-1 rounded-full bg-emerald-900 border border-emerald-500 text-emerald-400';
+
+                // Add to table
+                const table = document.getElementById('signalTable');
+                const time = new Date().toLocaleTimeString();
+                const row = `
+                    <tr class="hover:bg-gray-900/50 transition bg-emerald-950/20">
+                        <td class="p-2.5 text-gray-400">${time}</td>
+                        <td class="p-2.5 font-bold text-white">${latestData.marketName}</td>
+                        <td class="p-2.5 text-amber-400">${bestType}</td>
+                        <td class="p-2.5 font-bold text-emerald-400">${bestPrediction}</td>
+                        <td class="p-2.5 text-blue-400">${bestProb}%</td>
+                        <td class="p-2.5"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px]">● GENERATED</span></td>
+                    </tr>
+                `;
+                table.innerHTML = row + table.innerHTML;
+            }, 1000);
+        }
+
         function updateDashboard(data) {
             const s = data.stats;
 
@@ -319,11 +382,13 @@
             document.getElementById('sampleSize').innerText = `${s.sampleSize} Ticks`;
             document.getElementById('confidenceText').innerText = `${s.confidence}%`;
 
-            // Signal Output
-            document.getElementById('predictedSignal').innerText = s.prediction;
-            document.getElementById('modelProb').innerText = `${s.confidence}%`;
-            document.getElementById('signalType').innerText = s.signalType;
-            document.getElementById('signalStrength').innerText = s.strength;
+            // If not actively generated, show default status
+            if (document.getElementById('predictedSignal').innerText.includes('READY') || document.getElementById('predictedSignal').innerText.includes('WAITING')) {
+                document.getElementById('predictedSignal').innerText = s.prediction;
+                document.getElementById('modelProb').innerText = `${s.confidence}%`;
+                document.getElementById('signalType').innerText = s.signalType;
+                document.getElementById('signalStrength').innerText = s.strength;
+            }
 
             // Digit Grid
             s.digitPercentages.forEach((perc, digit) => {
@@ -360,24 +425,6 @@
                 chart.data.labels = s.recentPrices.map((_, i) => i);
                 chart.data.datasets[0].data = s.recentPrices;
                 chart.update();
-            }
-
-            // Signal Stream Table Insertion
-            if (s.confidence >= 75 && s.prediction !== 'WAITING FOR CONFLUENCE') {
-                const table = document.getElementById('signalTable');
-                const time = new Date().toLocaleTimeString();
-                const row = `
-                    <tr class="hover:bg-gray-900/50 transition">
-                        <td class="p-2.5 text-gray-400">${time}</td>
-                        <td class="p-2.5 font-bold text-white">${data.marketName}</td>
-                        <td class="p-2.5 text-amber-400">${s.signalType}</td>
-                        <td class="p-2.5 font-bold text-emerald-400">${s.prediction}</td>
-                        <td class="p-2.5 text-blue-400">${s.confidence}%</td>
-                        <td class="p-2.5"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px]">● LIVE</span></td>
-                    </tr>
-                `;
-                table.innerHTML = row + table.innerHTML;
-                if (table.children.length > 8) table.removeChild(table.lastChild);
             }
         }
 
