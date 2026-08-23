@@ -7,111 +7,189 @@ const app = express();
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
-app.use(express.static(path.join(__dirname, 'public')));
-
-const PORT = process.env.PORT || 10000;
-const DERIV_APP_ID = 1089;
-
+// Official public App ID 1089 with secure WebSocket URI
+const DERIV_WS_URL = 'wss://ws.derivws.com/websockets/v3?app_id=1089';
 let derivWs = null;
+
+const MARKETS = {
+    'R_100': 'Volatility 100 Index',
+    'R_75': 'Volatility 75 Index',
+    'R_50': 'Volatility 50 Index',
+    'R_25': 'Volatility 25 Index',
+    'R_10': 'Volatility 10 Index',
+    '1HZ100V': 'Volatility 100 (1s) Index',
+    '1HZ75V': 'Volatility 75 (1s) Index'
+};
+
 let activeSymbol = 'R_100';
-let activeWindow = 100;
-let tickBuffer = [];
+let activeWindowSize = 100;
+const tickBuffers = {};
+
+Object.keys(MARKETS).forEach(sym => { tickBuffers[sym] = []; });
 
 function connectDeriv() {
-    derivWs = new WebSocket(`wss://ws.derivws.com/websockets/v3?app_id=${DERIV_APP_ID}`);
+    console.log('[Deriv API] Connecting to WebSocket...');
+    derivWs = new WebSocket(DERIV_WS_URL);
 
     derivWs.on('open', () => {
         console.log('[Deriv API] Connected successfully.');
-        subscribeTicks(activeSymbol);
+        subscribeSymbol(activeSymbol);
     });
 
     derivWs.on('message', (data) => {
         try {
-            const msg = JSON.parse(data.toString());
+            const response = JSON.parse(data);
 
-            // Ignore ping/pong and non-tick payload responses safely
-            if (msg.msg_type !== 'tick' || !msg.tick) return;
+            if (response.msg_type === 'history') {
+                const prices = response.history.prices || [];
+                const times = response.history.times || [];
+                const symbol = response.echo_req.ticks_history;
 
-            const tick = msg.tick;
-            
-            // Extract prices and digits safely
-            const price = tick.quote;
-            const priceStr = price.toFixed(tick.pip_size || 2);
-            const lastDigit = parseInt(priceStr.slice(-1));
+                tickBuffers[symbol] = prices.map((p, idx) => {
+                    const priceStr = p.toFixed(4);
+                    return {
+                        quote: p,
+                        epoch: times[idx],
+                        digit: parseInt(priceStr.slice(-1))
+                    };
+                });
 
-            if (!isNaN(lastDigit)) {
-                tickBuffer.push({ price, priceStr, digit: lastDigit, time: tick.epoch });
-                if (tickBuffer.length > 1000) tickBuffer.shift();
+                broadcastUpdate(symbol);
             }
 
-            broadcastMarketUpdate();
+            if (response.msg_type === 'tick') {
+                const tick = response.tick;
+                const symbol = tick.symbol;
+                const priceStr = tick.quote.toFixed(4);
+                const lastDigit = parseInt(priceStr.slice(-1));
 
+                if (!tickBuffers[symbol]) tickBuffers[symbol] = [];
+
+                tickBuffers[symbol].push({
+                    quote: tick.quote,
+                    epoch: tick.epoch,
+                    digit: lastDigit
+                });
+
+                if (tickBuffers[symbol].length > 1000) tickBuffers[symbol].shift();
+
+                broadcastUpdate(symbol, tick.quote, lastDigit);
+            }
         } catch (err) {
-            console.error('[Deriv Data Parse Error]:', err.message);
+            console.error('[Parse Error]:', err.message);
         }
     });
 
     derivWs.on('close', () => {
-        console.log('[Deriv API] Connection closed. Reconnecting...');
+        console.log('[Deriv API] Disconnected. Reconnecting in 3s...');
         setTimeout(connectDeriv, 3000);
     });
 
     derivWs.on('error', (err) => {
-        console.error('[Deriv API Error]:', err.message);
+        console.error('[Socket Error]:', err.message);
     });
 }
 
-function subscribeTicks(symbol) {
+function subscribeSymbol(symbol) {
     if (derivWs && derivWs.readyState === WebSocket.OPEN) {
-        derivWs.send(JSON.stringify({ forget_all: 'ticks' }));
-        derivWs.send(JSON.stringify({ ticks: symbol, subscribe: 1 }));
-        tickBuffer = [];
+        // Forget previous tick subscriptions
+        derivWs.send(JSON.stringify({ forget_all: "ticks" }));
+
+        // Request initial history + subscribe
+        derivWs.send(JSON.stringify({
+            ticks_history: symbol,
+            adjust_start_time: 1,
+            count: activeWindowSize,
+            end: "latest",
+            style: "ticks",
+            subscribe: 1
+        }));
     }
 }
 
-function calculateStats() {
-    const currentWindow = tickBuffer.slice(-activeWindow);
-    if (currentWindow.length === 0) return null;
+function analyzeTicks(symbol, windowSize) {
+    const rawBuffer = tickBuffers[symbol] || [];
+    if (rawBuffer.length === 0) return null;
 
-    const counts = new Array(10).fill(0);
-    currentWindow.forEach(t => counts[t.digit]++);
+    const history = rawBuffer.slice(-windowSize);
+    const total = history.length;
 
-    const total = currentWindow.length;
-    const digitPercentages = counts.map(c => Math.round((c / total) * 100));
-
-    let hotDigit = 0, coldDigit = 0;
-    let maxC = -1, minC = Infinity;
-
-    counts.forEach((c, d) => {
-        if (c > maxC) { maxC = c; hotDigit = d; }
-        if (c < minC) { minC = c; coldDigit = d; }
+    const digitCounts = Array(10).fill(0);
+    history.forEach(t => {
+        if (!isNaN(t.digit) && t.digit >= 0 && t.digit <= 9) {
+            digitCounts[t.digit]++;
+        }
     });
 
-    const recentPrices = currentWindow.slice(-15).map(t => t.price);
-    const confidence = digitPercentages[hotDigit] || 0;
+    const digitPercentages = digitCounts.map(c => ((c / total) * 100).toFixed(1));
+
+    let hotDigit = 0, coldDigit = 0;
+    digitCounts.forEach((cnt, idx) => {
+        if (cnt > digitCounts[hotDigit]) hotDigit = idx;
+        if (cnt < digitCounts[coldDigit]) coldDigit = idx;
+    });
+
+    const over5Count = history.filter(t => t.digit > 5).length;
+    const under5Count = history.filter(t => t.digit < 5).length;
+    const over5Prob = ((over5Count / total) * 100).toFixed(1);
+    const under5Prob = ((under5Count / total) * 100).toFixed(1);
+
+    const evenCount = history.filter(t => t.digit % 2 === 0).length;
+    const oddCount = total - evenCount;
+    const evenProb = ((evenCount / total) * 100).toFixed(1);
+    const oddProb = ((oddCount / total) * 100).toFixed(1);
+
+    let riseCount = 0, fallCount = 0;
+    const recent = history.slice(-10);
+    for (let i = 1; i < recent.length; i++) {
+        if (recent[i].quote > recent[i - 1].quote) riseCount++;
+        if (recent[i].quote < recent[i - 1].quote) fallCount++;
+    }
+    const riseProb = (((riseCount / (recent.length - 1 || 1))) * 100).toFixed(1);
+    const fallProb = (((fallCount / (recent.length - 1 || 1))) * 100).toFixed(1);
+
+    const hotFreq = parseFloat(digitPercentages[hotDigit]);
+    let confidence = Math.min(Math.round((hotFreq / 10) * 55 + (total / windowSize) * 30), 96);
+    
+    let signalType = 'MATCHES';
+    let prediction = `MATCHES ${hotDigit}`;
+    let strength = confidence >= 80 ? 'HIGH' : 'MODERATE';
 
     return {
         sampleSize: total,
+        windowSize,
+        digitPercentages,
         hotDigit,
         coldDigit,
+        over5Prob,
+        under5Prob,
+        evenProb,
+        oddProb,
+        riseProb,
+        fallProb,
+        signalType,
+        prediction,
         confidence,
-        digitPercentages,
-        recentPrices
+        strength,
+        recentPrices: history.slice(-20).map(t => t.quote)
     };
 }
 
-function broadcastMarketUpdate() {
-    if (tickBuffer.length === 0) return;
-    const lastTick = tickBuffer[tickBuffer.length - 1];
-    const stats = calculateStats();
+function broadcastUpdate(symbol, price = null, lastDigit = null) {
+    const stats = analyzeTicks(symbol, activeWindowSize);
+    if (!stats) return;
+
+    const currentPrice = price || (tickBuffers[symbol].length ? tickBuffers[symbol][tickBuffers[symbol].length - 1].quote : 0);
+    const currentDigit = lastDigit !== null ? lastDigit : (tickBuffers[symbol].length ? tickBuffers[symbol][tickBuffers[symbol].length - 1].digit : 0);
 
     const payload = JSON.stringify({
         type: 'MARKET_UPDATE',
-        symbol: activeSymbol,
-        marketName: activeSymbol.replace('_', ' '),
-        price: lastTick.priceStr,
-        lastDigit: lastTick.digit,
-        stats
+        symbol,
+        marketName: MARKETS[symbol] || symbol,
+        price: Number(currentPrice).toFixed(2),
+        lastDigit: currentDigit,
+        stats,
+        timestamp: new Date().toISOString()
     });
 
     wss.clients.forEach(client => {
@@ -122,25 +200,32 @@ function broadcastMarketUpdate() {
 }
 
 wss.on('connection', (ws) => {
-    if (tickBuffer.length > 0) broadcastMarketUpdate();
+    ws.send(JSON.stringify({ type: 'STATUS', status: 'CONNECTED' }));
+    if (tickBuffers[activeSymbol] && tickBuffers[activeSymbol].length > 0) {
+        broadcastUpdate(activeSymbol);
+    }
 
     ws.on('message', (message) => {
         try {
-            const data = JSON.parse(message);
-            if (data.action === 'CHANGE_MARKET' && data.symbol) {
-                activeSymbol = data.symbol;
-                subscribeTicks(activeSymbol);
-            } else if (data.action === 'CHANGE_WINDOW' && data.window) {
-                activeWindow = parseInt(data.window) || 100;
-                broadcastMarketUpdate();
+            const cmd = JSON.parse(message);
+            if (cmd.action === 'CHANGE_MARKET') {
+                activeSymbol = cmd.symbol;
+                subscribeSymbol(activeSymbol);
             }
-        } catch (err) {
-            console.error('[Client Message Error]:', err.message);
+            if (cmd.action === 'CHANGE_WINDOW') {
+                activeWindowSize = parseInt(cmd.window);
+                subscribeSymbol(activeSymbol);
+            }
+        } catch (e) {
+            console.error('[Client Command Error]:', e.message);
         }
     });
 });
 
-server.listen(PORT, () => {
-    console.log(`[Deriv AI Platform] Running on port ${PORT}`);
-    connectDeriv();
-});
+app.use(express.static(path.join(__dirname, 'public')));
+app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
+
+connectDeriv();
+
+const PORT = process.env.PORT || 10000;
+server.listen(PORT, '0.0.0.0', () => console.log(`[Server] Running on port ${PORT}`));
